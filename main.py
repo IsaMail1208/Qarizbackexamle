@@ -15,15 +15,29 @@ load_dotenv()
 
 app = FastAPI(title="Qariz API")
 
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")
+_frontend_origins = os.getenv("FRONTEND_ORIGIN", "*")
+if not _frontend_origins or _frontend_origins == "*":
+    _origins = ["*"]
+else:
+    _origins = [o.strip() for o in _frontend_origins.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_origin] if frontend_origin != "*" else ["*"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Fallback: ensure CORS header is present on all responses (helps when some errors bypass middleware)
+@app.middleware("http")
+async def add_cors_header(request, call_next):
+    response = await call_next(request)
+    if "access-control-allow-origin" not in {k.lower() for k in response.headers.keys()}:
+        # mirror single allowed origin or set wildcard
+        response.headers["Access-Control-Allow-Origin"] = _origins[0] if _origins else "*"
+    return response
 
 
 @app.get("/health")
