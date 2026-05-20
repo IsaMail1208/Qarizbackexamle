@@ -15,11 +15,18 @@ load_dotenv()
 
 app = FastAPI(title="Qariz API")
 
+_extra_origins = [
+    "https://qarizfrontexamle-6jltcpox7-ismail-s-projects23.vercel.app",
+]
+
 _frontend_origins = os.getenv("FRONTEND_ORIGIN", "*")
 if not _frontend_origins or _frontend_origins == "*":
     _origins = ["*"]
 else:
     _origins = [o.strip() for o in _frontend_origins.split(",") if o.strip()]
+    for origin in _extra_origins:
+        if origin not in _origins:
+            _origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
